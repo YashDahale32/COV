@@ -1,0 +1,1000 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Shield, Cpu, Zap, Layers, Lock, LayoutTemplate, 
+  MessageCircle, Target, Trophy, Users, Share2, 
+  Crosshair, TrendingUp, Sparkles, Send, Bot, X, 
+  Loader2, Info, Brain, Briefcase, Menu, ArrowRight,
+  CheckCircle, Play, ChevronDown, Monitor, Smartphone,
+  Globe, Clock, MapPin, Mail, Phone, Calendar,
+  Code, Database, Server, FileText, Check, HelpCircle,
+  FileLock, Scale, Eye, AlertTriangle, LifeBuoy
+} from 'lucide-react';
+
+/* --- GEMINI API INTEGRATION --- */
+const apiKey = ""; // System provides key at runtime
+
+const callGemini = async (prompt, systemInstruction) => {
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          systemInstruction: { parts: [{ text: systemInstruction }] },
+        }),
+      }
+    );
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Error: No response.";
+  } catch (error) {
+    console.error("Gemini API Error:", error);
+    return "Connection error. Please try again.";
+  }
+};
+
+/* --- PROMPTS --- */
+const FOUNDER_PROMPT = `You are the AI Founder of Convexly Digital. Answer questions about the agency. 
+Services: AI Consultancy, SaaS Products (DailyBae, Warzone), Data Security. 
+Tone: Professional, Cyberpunk, Visionary. Concise answers.`;
+
+const DAILYBAE_PROMPT = (mode) => `Roleplay as 'DailyBae' (${mode} mode). Short text message style.`;
+
+/* --- DATA & CONTENT --- */
+
+const SERVICE_DETAILS = {
+  "SaaS Product Labs": {
+    tagline: "From Idea to Recurring Revenue.",
+    description: "We don't just write code; we build businesses. Our product labs team specializes in rapid MVP development, finding product-market fit, and scaling architecture for high-load SaaS applications.",
+    deliverables: ["Market Viability Analysis", "Full-Stack Development (React/Node/Python)", "Go-To-Market Strategy", "Subscription Payment Integration"],
+    impact: "Reduce time-to-market by 60% and launch with enterprise-grade scalability.",
+    stack: ["React", "Node.js", "AWS/GCP", "Stripe"]
+  },
+  "Enterprise Consultancy": {
+    tagline: "Strategic AI Transformation.",
+    description: "Navigating the AI landscape is complex. We provide the roadmap, architecture, and training required to integrate Large Language Models (LLMs) into your existing enterprise workflows.",
+    deliverables: ["AI Readiness Audit", "Custom LLM Fine-Tuning", "Employee Training Workshops", "Workflow Automation Roadmap"],
+    impact: "40% operational efficiency gain within Q1 of implementation.",
+    stack: ["PyTorch", "LangChain", "OpenAI Enterprise", "Azure"]
+  },
+  "Data Security & Privacy": {
+    tagline: " Innovation Without Risk.",
+    description: "Deploy AI without compromising sensitive data. We build air-gapped environments, PII redaction pipelines, and compliance-first architectures.",
+    deliverables: ["SOC2/GDPR Compliance Audit", "PII Redaction Systems", "Local LLM Deployment (Air-gapped)", "Red Teaming & Pen Testing"],
+    impact: "Zero data leaks and full regulatory compliance.",
+    stack: ["PrivateGPT", "HuggingFace", "Vault", "Sentinel"]
+  },
+  "Autonomous Agents": {
+    tagline: "The Digital Workforce.",
+    description: "Replace repetitive human tasks with intelligent agents. From customer support to sales outreach, our agents work 24/7 with human-like reasoning.",
+    deliverables: ["24/7 Customer Support Bots", "Sales SDR Agents", "HR Onboarding Bots", "Internal Ops Assistants"],
+    impact: "80% reduction in L1 support tickets and 3x faster lead qualification.",
+    stack: ["AutoGPT", "Vector DBs", "Twilio", "SendGrid"]
+  },
+  "AI Safety Guardrails": {
+    tagline: "Trust is Non-Negotiable.",
+    description: "Prevent hallucinations, bias, and brand damage. We implement proprietary guardrails that monitor and filter AI outputs in real-time.",
+    deliverables: ["Hallucination Detection", "Bias Mitigation Filters", "Output Validation Layers", "Adversarial Testing"],
+    impact: "Brand-safe AI deployment with 99.9% reliability.",
+    stack: ["NeMo Guardrails", "LangSmith", "Custom Filters"]
+  },
+  "Predictive Analytics": {
+    tagline: "See the Future.",
+    description: "Turn raw data into actionable forecasts. We build machine learning models that predict customer churn, demand spikes, and dynamic pricing opportunities.",
+    deliverables: ["Demand Forecasting Models", "Churn Prediction Algorithms", "Dynamic Pricing Engines", "Executive Dashboards"],
+    impact: "15% revenue uplift through optimized decision making.",
+    stack: ["TensorFlow", "Snowflake", "Tableau", "Python"]
+  }
+};
+
+/* --- COMPONENTS --- */
+
+const Navbar = ({ activePage, setActivePage }) => {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const navLinks = [
+    { id: 'home', label: 'Home' },
+    { id: 'services', label: 'Services' },
+    { id: 'products', label: 'Products' },
+    { id: 'vision', label: 'Vision' },
+  ];
+
+  return (
+    <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ease-in-out ${isScrolled ? 'bg-[#050b14]/80 backdrop-blur-xl border-b border-white/5 py-4 shadow-2xl' : 'bg-transparent py-6'}`}>
+      <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
+        <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setActivePage('home')}>
+           <div className="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center font-bold text-lg shadow-[0_0_15px_rgba(0,240,255,0.3)] group-hover:shadow-[0_0_25px_rgba(0,240,255,0.6)] transition-all overflow-hidden duration-500">
+              <img src="convexly new logo.jpg" alt="Logo" className="w-full h-full object-cover opacity-80 mix-blend-overlay" />
+              <span className="absolute text-white font-bold">C</span>
+           </div>
+           <span className="font-bold tracking-widest text-lg text-white font-orbitron group-hover:text-cyan-400 transition-colors">CONVEXLY</span>
+        </div>
+
+        {/* Desktop Links - Kit Removed */}
+        <div className="hidden md:flex items-center gap-8">
+           {navLinks.map((item) => (
+             <button 
+                key={item.id} 
+                onClick={() => setActivePage(item.id)} 
+                className={`text-sm font-medium uppercase tracking-wider transition-all hover:text-cyan-400 relative group ${activePage === item.id ? 'text-cyan-400' : 'text-slate-300'}`}
+             >
+               {item.label}
+               <span className={`absolute -bottom-1 left-0 w-full h-0.5 bg-cyan-400 transform scale-x-0 transition-transform duration-300 group-hover:scale-x-100 ${activePage === item.id ? 'scale-x-100' : ''}`}></span>
+             </button>
+           ))}
+           <button onClick={() => setActivePage('contact')} className="px-6 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-full transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)]">
+             Book Demo
+           </button>
+        </div>
+
+        {/* Mobile Toggle */}
+        <button className="md:hidden text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          {mobileMenuOpen ? <X /> : <Menu />}
+        </button>
+      </div>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="absolute top-full left-0 w-full bg-[#050b14] border-b border-slate-800 p-6 flex flex-col gap-4 md:hidden animate-slideDown shadow-2xl">
+           {[...navLinks, {id: 'contact', label: 'Contact'}].map((item) => (
+             <button key={item.id} onClick={() => {setActivePage(item.id); setMobileMenuOpen(false)}} className="text-left py-3 text-lg text-slate-300 hover:text-cyan-400 uppercase tracking-wider border-b border-slate-800">
+               {item.label}
+             </button>
+           ))}
+        </div>
+      )}
+    </nav>
+  );
+};
+
+/* --- SUB-COMPONENTS --- */
+
+const ServiceModal = ({ service, data, onClose, onBook }) => {
+  if (!service) return null;
+  
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex justify-center items-center p-4 animate-fadeIn">
+      <div className="bg-[#0A0F1C]/90 border border-cyan-500/20 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative shadow-[0_0_100px_rgba(0,240,255,0.1)]">
+         
+         <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-slate-900 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors z-10">
+            <X size={24} />
+         </button>
+
+         <div className="grid md:grid-cols-5 h-full">
+            {/* Left Sidebar */}
+            <div className="md:col-span-2 bg-slate-900/50 p-8 border-r border-white/5 flex flex-col justify-between">
+               <div>
+                  <h2 className="text-3xl font-bold text-white mb-2">{service}</h2>
+                  <p className="text-cyan-400 font-mono text-sm mb-6">{data.tagline}</p>
+                  <p className="text-slate-400 leading-relaxed text-sm mb-8">{data.description}</p>
+                  
+                  <div className="mb-8">
+                     <h4 className="text-white font-bold mb-3 flex items-center gap-2"><Cpu size={16} /> Tech Stack</h4>
+                     <div className="flex flex-wrap gap-2">
+                        {data.stack.map((s,i) => (
+                           <span key={i} className="px-2 py-1 bg-slate-800 rounded text-xs text-slate-300 border border-slate-700">{s}</span>
+                        ))}
+                     </div>
+                  </div>
+               </div>
+               
+               <button onClick={() => {onClose(); onBook();}} className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-cyan-900/20">
+                  Book Strategy Call <ArrowRight size={16}/>
+               </button>
+            </div>
+
+            {/* Right Content */}
+            <div className="md:col-span-3 p-8">
+               <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                  <Briefcase size={20} className="text-purple-400" /> Key Deliverables
+               </h3>
+               <div className="grid gap-4 mb-8">
+                  {data.deliverables.map((item, i) => (
+                     <div key={i} className="flex items-start gap-3 p-3 bg-slate-900/30 rounded-lg border border-slate-800">
+                        <CheckCircle className="text-purple-500 shrink-0 mt-0.5" size={18} />
+                        <span className="text-slate-300 text-sm">{item}</span>
+                     </div>
+                  ))}
+               </div>
+
+               <div className="bg-gradient-to-br from-cyan-900/20 to-blue-900/10 p-6 rounded-2xl border border-cyan-500/20">
+                  <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                     <TrendingUp size={18} className="text-green-400" /> Business Impact
+                  </h3>
+                  <p className="text-slate-300 italic">"{data.impact}"</p>
+               </div>
+            </div>
+         </div>
+      </div>
+    </div>
+  );
+};
+
+const DailyBaeDemo = () => {
+    const [mode, setMode] = useState('Savage');
+    const [messages, setMessages] = useState([{ role: 'system', text: "Skipped gym again? Wow, shocker. 💅" }]);
+    const [input, setInput] = useState('');
+    const [loading, setLoading] = useState(false);
+  
+    const handleSend = async () => {
+      if (!input.trim()) return;
+      const userMsg = input;
+      setInput('');
+      setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+      setLoading(true);
+      const reply = await callGemini(userMsg, DAILYBAE_PROMPT(mode));
+      setMessages(prev => [...prev, { role: 'system', text: reply }]);
+      setLoading(false);
+    };
+  
+    return (
+      <div className="bg-black rounded-[40px] border-[8px] border-slate-800 h-[600px] w-full max-w-sm mx-auto shadow-[0_0_50px_rgba(236,72,153,0.3)] overflow-hidden flex flex-col">
+         <div className="bg-gradient-to-b from-purple-900 via-slate-900 to-black h-full flex flex-col">
+            <div className="p-6 flex justify-between items-center bg-black/20 backdrop-blur-sm">
+               <span className="font-bold text-pink-400">DailyBae 💖</span>
+               <button onClick={() => setMode(m => m === 'Savage' ? 'Supportive' : 'Savage')} className="text-xs bg-slate-800 px-2 py-1 rounded text-white border border-slate-600 hover:bg-slate-700 transition">{mode} ↻</button>
+            </div>
+            <div className="flex-1 p-4 overflow-y-auto space-y-4 no-scrollbar">
+               {messages.map((m, i) => (
+                 <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`p-3 rounded-2xl max-w-[85%] text-sm ${m.role === 'user' ? 'bg-purple-600 text-white rounded-tr-none' : 'bg-slate-800 text-slate-200 rounded-tl-none border border-slate-700'}`}>{m.text}</div>
+                 </div>
+               ))}
+               {loading && <div className="text-slate-500 text-xs ml-4 flex gap-1"><span className="animate-bounce">.</span><span className="animate-bounce delay-100">.</span><span className="animate-bounce delay-200">.</span></div>}
+            </div>
+            <div className="p-4 bg-black/40 backdrop-blur-md relative">
+               <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()} placeholder="Type something..." className="w-full bg-slate-800/80 rounded-full py-3 px-4 text-sm text-white focus:outline-none focus:border-pink-500 border border-transparent" />
+               <button onClick={handleSend} className="absolute right-6 top-6 text-pink-500"><Send size={16}/></button>
+            </div>
+         </div>
+      </div>
+    );
+};
+
+/* --- FUNCTIONAL PAGES --- */
+
+const CareersPage = () => (
+   <div className="pt-32 pb-24 px-6 max-w-7xl mx-auto animate-fadeIn min-h-screen">
+      <div className="text-center mb-16">
+          <h4 className="text-cyan-400 font-mono mb-4">JOIN THE RESISTANCE</h4>
+          <h2 className="text-5xl md:text-6xl font-bold text-white mb-6">Build the Autonomous Future.</h2>
+          <p className="text-xl text-slate-400 max-w-2xl mx-auto">We are looking for misfits, rebels, and genius engineers who want to automate the boring parts of the world.</p>
+      </div>
+      <div className="grid gap-6">
+          {[
+              { role: "Senior AI Engineer", loc: "Remote / Hybrid", type: "Engineering", tags: ["Python", "LLMs", "PyTorch"] },
+              { role: "Product Designer (UI/UX)", loc: "Gurugram, India", type: "Design", tags: ["Figma", "Cyberpunk Style", "Motion"] },
+              { role: "Enterprise Sales Lead", loc: "New York / Remote", type: "Sales", tags: ["B2B", "SaaS", "Closer"] },
+              { role: "Growth Hacker", loc: "Remote", type: "Marketing", tags: ["Viral Loops", "SEO", "PPC"] }
+          ].map((job, i) => (
+              <div key={i} className="p-6 bg-slate-900/30 border border-slate-800 rounded-2xl hover:bg-slate-900/60 hover:border-cyan-500/30 transition-all flex flex-col md:flex-row justify-between items-center gap-6">
+                  <div>
+                      <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-2xl font-bold text-white">{job.role}</h3>
+                          <span className="text-xs bg-slate-800 px-2 py-1 rounded text-slate-400 border border-slate-700">{job.type}</span>
+                      </div>
+                      <p className="text-slate-400 mb-4 flex items-center gap-2"><MapPin size={14}/> {job.loc}</p>
+                      <div className="flex gap-2">
+                          {job.tags.map((t, idx) => <span key={idx} className="text-xs text-cyan-400 bg-cyan-900/20 px-2 py-1 rounded border border-cyan-900/50">{t}</span>)}
+                      </div>
+                  </div>
+                  <button className="px-6 py-3 bg-white text-black font-bold rounded-lg hover:bg-cyan-400 hover:text-black transition-colors min-w-[140px]">Apply Now</button>
+              </div>
+          ))}
+      </div>
+   </div>
+);
+
+const BlogPage = () => (
+    <div className="pt-32 pb-24 px-6 max-w-7xl mx-auto animate-fadeIn min-h-screen">
+       <div className="text-center mb-16">
+           <h4 className="text-purple-400 font-mono mb-4">THOUGHT LEADERSHIP</h4>
+           <h2 className="text-5xl font-bold text-white mb-6">Signals from the Future.</h2>
+       </div>
+       <div className="grid md:grid-cols-3 gap-8">
+           {[
+               { title: "The End of Wrappers", date: "Oct 12, 2025", cat: "Strategy", desc: "Why thin wrappers around GPT-4 are dying, and what replaces them." },
+               { title: "Agentic Workflows 101", date: "Nov 03, 2025", cat: "Engineering", desc: "Moving beyond chatbots to agents that actually do work." },
+               { title: "Security in the Age of LLMs", date: "Dec 15, 2025", cat: "Security", desc: "How to deploy enterprise AI without leaking IP." },
+               { title: "Designing DailyBae", date: "Jan 05, 2026", cat: "Case Study", desc: "The psychology behind high-retention emotional AI." },
+               { title: "Sales Gamification", date: "Feb 01, 2026", cat: "Product", desc: "Why competitive dashboards drive 3x more revenue." },
+               { title: "The 2026 AI Stack", date: "Feb 10, 2026", cat: "Tech", desc: "Our migration from LangChain to custom orchestrators." },
+           ].map((post, i) => (
+               <div key={i} className="group bg-slate-900/30 border border-slate-800 rounded-2xl overflow-hidden hover:border-purple-500/30 transition-all">
+                   <div className="h-48 bg-gradient-to-br from-slate-800 to-black relative">
+                       <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
+                       <div className="absolute top-4 left-4 bg-black/50 backdrop-blur px-3 py-1 rounded text-xs text-white border border-white/10">{post.cat}</div>
+                   </div>
+                   <div className="p-6">
+                       <p className="text-xs text-slate-500 mb-2">{post.date}</p>
+                       <h3 className="text-xl font-bold text-white mb-3 group-hover:text-purple-400 transition-colors">{post.title}</h3>
+                       <p className="text-slate-400 text-sm mb-4">{post.desc}</p>
+                       <span className="text-purple-400 text-sm font-bold flex items-center gap-2 cursor-pointer">Read Article <ArrowRight size={14}/></span>
+                   </div>
+               </div>
+           ))}
+       </div>
+    </div>
+);
+
+const LegalPage = ({ type }) => {
+    let title, content;
+
+    switch (type) {
+        case 'privacy':
+            title = "Privacy Policy";
+            content = (
+                <div className="space-y-6 text-slate-300">
+                    <p><strong>Effective Date:</strong> January 1, 2026</p>
+                    <p>At Convexly Digital ("we," "our," or "us"), we are committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you visit our website or use our services (including "DailyBae" and "Outreach Warzone").</p>
+                    
+                    <h3 className="text-xl font-bold text-white mt-6">1. Information We Collect</h3>
+                    <ul className="list-disc pl-5 space-y-2">
+                        <li><strong>Personal Data:</strong> Name, email address, phone number, and company details when you book a demo or subscribe.</li>
+                        <li><strong>Usage Data:</strong> Information on how you interact with our AI agents and website (session duration, click data).</li>
+                        <li><strong>AI Interaction Data:</strong> Text inputs provided to our chatbots for the purpose of generating responses.</li>
+                    </ul>
+
+                    <h3 className="text-xl font-bold text-white mt-6">2. How We Use Your Data</h3>
+                    <p>We use your data to:</p>
+                    <ul className="list-disc pl-5 space-y-2">
+                        <li>Provide and maintain our AI services.</li>
+                        <li>Train and improve our machine learning models (only with anonymized data).</li>
+                        <li>Send you updates, newsletters, and marketing materials (you can opt-out anytime).</li>
+                    </ul>
+
+                    <h3 className="text-xl font-bold text-white mt-6">3. Data Security</h3>
+                    <p>We implement enterprise-grade security measures including AES-256 encryption, SOC2-compliant infrastructure, and optional air-gapped deployments for sensitive clients.</p>
+                </div>
+            );
+            break;
+        case 'terms':
+            title = "Terms of Service";
+            content = (
+                <div className="space-y-6 text-slate-300">
+                    <p><strong>Last Updated:</strong> January 1, 2026</p>
+                    <p>Please read these Terms of Service ("Terms") carefully before using the Convexly Digital website and services.</p>
+
+                    <h3 className="text-xl font-bold text-white mt-6">1. Acceptance of Terms</h3>
+                    <p>By accessing or using our Service, you agree to be bound by these Terms. If you disagree with any part of the terms, you may not access the Service.</p>
+
+                    <h3 className="text-xl font-bold text-white mt-6">2. Use of AI Services</h3>
+                    <p>Our services utilize Artificial Intelligence. You acknowledge that AI outputs may occasionally be inaccurate or biased. You agree to review critical AI-generated outputs before acting upon them.</p>
+
+                    <h3 className="text-xl font-bold text-white mt-6">3. Intellectual Property</h3>
+                    <p>The Service and its original content (excluding content provided by you), features, and functionality are and will remain the exclusive property of Convexly Digital.</p>
+                </div>
+            );
+            break;
+        case 'security':
+            title = "Security Protocols";
+            content = (
+                <div className="space-y-6 text-slate-300">
+                    <p>Convexly Digital treats security as a fundamental component of our architecture, not an afterthought.</p>
+
+                    <h3 className="text-xl font-bold text-white mt-6">Infrastructure Security</h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div className="p-4 bg-slate-800 rounded border border-slate-700">
+                            <h4 className="font-bold text-cyan-400">Encryption</h4>
+                            <p className="text-sm mt-1">Data at rest is encrypted using AES-256. Data in transit is secured via TLS 1.3.</p>
+                        </div>
+                        <div className="p-4 bg-slate-800 rounded border border-slate-700">
+                            <h4 className="font-bold text-cyan-400">Access Control</h4>
+                            <p className="text-sm mt-1">Strict Role-Based Access Control (RBAC) and Multi-Factor Authentication (MFA) for all internal systems.</p>
+                        </div>
+                    </div>
+
+                    <h3 className="text-xl font-bold text-white mt-6">AI Safety Layers</h3>
+                    <p>We deploy proprietary guardrails to prevent:</p>
+                    <ul className="list-disc pl-5 space-y-2">
+                        <li>Prompt Injection attacks.</li>
+                        <li>PII (Personally Identifiable Information) leakage.</li>
+                        <li>Generation of harmful or biased content.</li>
+                    </ul>
+                </div>
+            );
+            break;
+        default:
+            title = "Legal";
+            content = <p>Select a document.</p>;
+    }
+
+    return (
+        <div className="pt-32 pb-24 px-6 max-w-4xl mx-auto animate-fadeIn min-h-screen">
+            <h1 className="text-4xl font-bold text-white mb-8 border-b border-slate-800 pb-4">{title}</h1>
+            <div className="p-8 bg-slate-900/50 border border-slate-800 rounded-2xl leading-loose shadow-xl backdrop-blur-sm">
+                {content}
+            </div>
+        </div>
+    );
+};
+
+/* --- MAIN PAGES --- */
+
+const HomePage = ({ setActivePage }) => {
+    // Interactive Metrics Counter
+    const [counts, setCounts] = useState({ saved: 0, revenue: 0 });
+    
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCounts(prev => ({
+                saved: prev.saved < 12500 ? prev.saved + 125 : 12500,
+                revenue: prev.revenue < 450 ? prev.revenue + 4 : 450
+            }));
+        }, 30);
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+      <div className="animate-fadeIn">
+        {/* Hero Section */}
+        <section className="relative h-screen w-full flex items-center justify-center overflow-hidden">
+          <div className="absolute inset-0 z-0">
+            {/* Background Video with stronger overlay for text readability */}
+            <video autoPlay loop muted playsInline className="w-full h-full object-cover opacity-100 scale-105">
+              <source src="convexybot animation.mp4" type="video/mp4" />
+            </video>
+            {/* Heavy gradient for text contrast */}
+            <div className="absolute inset-0 bg-gradient-to-b from-[#050b14]/70 via-[#050b14]/40 to-[#050b14]"></div>
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none"></div>
+          </div>
+    
+          <div className="relative z-10 text-center max-w-5xl px-6 pt-20">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-500/50 bg-cyan-950/80 text-cyan-300 text-xs font-bold uppercase tracking-widest mb-8 animate-slideUp backdrop-blur-md shadow-[0_0_15px_rgba(0,240,255,0.3)]">
+               <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+               </span>
+               The Autonomous Economy is Here
+            </div>
+            
+            {/* Clean Title with Heavy Shadow - GLITCH REMOVED */}
+            <div className="mb-8 animate-slideUp delay-100">
+                <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-white font-orbitron leading-tight drop-shadow-[0_10px_30px_rgba(0,0,0,0.9)]">
+                  SMARTER BUSINESS,<br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-400 to-purple-500 drop-shadow-md">
+                    POWERED BY AI.
+                  </span>
+                </h1>
+            </div>
+
+            <p className="text-lg md:text-2xl text-slate-100 max-w-3xl mx-auto mb-10 font-medium leading-relaxed animate-slideUp delay-200 drop-shadow-2xl">
+              We build intelligent systems that replace manual work, drive growth, and unlock new revenue streams without increasing headcount.
+            </p>
+            
+            <div className="flex flex-col md:flex-row gap-6 justify-center animate-slideUp delay-300">
+              <button onClick={() => setActivePage('products')} className="px-8 py-4 bg-cyan-500 text-black font-bold rounded-lg hover:bg-cyan-400 transition-all transform hover:scale-105 flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(6,182,212,0.6)] border border-cyan-400">
+                 Explore Products <ArrowRight size={18} />
+              </button>
+              <button onClick={() => setActivePage('services')} className="px-8 py-4 bg-black/40 border border-white/30 text-white font-bold rounded-lg hover:bg-white/10 transition-all flex items-center justify-center gap-2 backdrop-blur-md hover:border-white/60">
+                 Our Services
+              </button>
+            </div>
+          </div>
+        </section>
+    
+        {/* Live Metrics Strip - Interactive Glassmorphism */}
+        <div className="border-y border-white/10 py-12 relative overflow-hidden bg-white/5 backdrop-blur-sm">
+            <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-3 gap-8 text-center relative z-10">
+                <div className="p-6">
+                    <h3 className="text-5xl font-bold text-white mb-2 font-mono drop-shadow-lg">{counts.saved.toLocaleString()}+</h3>
+                    <p className="text-cyan-400 uppercase tracking-widest text-sm font-bold">Human Hours Saved</p>
+                </div>
+                <div className="p-6 border-x border-white/10">
+                    <h3 className="text-5xl font-bold text-white mb-2 font-mono drop-shadow-lg">${counts.revenue}M+</h3>
+                    <p className="text-purple-400 uppercase tracking-widest text-sm font-bold">Client Revenue Generated</p>
+                </div>
+                <div className="p-6">
+                    <h3 className="text-5xl font-bold text-white mb-2 font-mono drop-shadow-lg">99.9%</h3>
+                    <p className="text-green-400 uppercase tracking-widest text-sm font-bold">System Uptime</p>
+                </div>
+            </div>
+        </div>
+
+        {/* Process Section */}
+        <section className="py-24 px-6 max-w-7xl mx-auto">
+            <div className="text-center mb-16">
+                <h4 className="text-cyan-400 font-mono mb-4">HOW WE BUILD</h4>
+                <h2 className="text-4xl font-bold text-white">The Convexly Process</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                {[
+                    { s: "01", t: "Discovery", d: "We audit your workflows to find high-impact automation opportunities." },
+                    { s: "02", t: "Strategy", d: "We design a custom AI architecture tailored to your specific KPIs." },
+                    { s: "03", t: "Build", d: "Rapid development of MVP agents and systems using our proprietary stack." },
+                    { s: "04", t: "Scale", d: "Deployment, monitoring, and continuous optimization for growth." }
+                ].map((step, i) => (
+                    <div key={i} className="relative p-6 border-l-2 border-slate-800 hover:border-cyan-500 transition-colors group bg-slate-900/20 hover:bg-slate-900/50 rounded-r-xl">
+                        <span className="text-5xl font-bold text-slate-800 absolute top-4 right-4 group-hover:text-cyan-900 transition-colors">{step.s}</span>
+                        <h3 className="text-xl font-bold text-white mb-2 relative z-10">{step.t}</h3>
+                        <p className="text-slate-400 text-sm relative z-10 leading-relaxed">{step.d}</p>
+                    </div>
+                ))}
+            </div>
+        </section>
+      </div>
+    );
+};
+
+const ServicesPage = ({ setActivePage }) => {
+    const [selectedService, setSelectedService] = useState(null);
+
+    return (
+        <div className="pt-32 pb-24 px-6 max-w-7xl mx-auto animate-fadeIn min-h-screen">
+            <div className="text-center mb-20">
+                <h4 className="text-cyan-400 font-mono mb-4">01 / CAPABILITIES</h4>
+                <h2 className="text-5xl md:text-6xl font-bold text-white mb-6">Full-Stack AI Infrastructure.</h2>
+                <p className="text-xl text-slate-400 max-w-2xl mx-auto">We don't just use tools. We build the engines that power modern enterprises.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {[
+                { icon: Zap, title: "SaaS Product Labs", desc: "We build turnkey AI products that generate recurring revenue with zero time dependency.", color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
+                { icon: Layers, title: "Enterprise Consultancy", desc: "Custom AI architecture design, roadmap planning, and implementation for scaling businesses.", color: "text-indigo-400", bg: "bg-indigo-500/10", border: "border-indigo-500/20" },
+                { icon: Lock, title: "Data Security & Privacy", desc: "Automated compliance (GDPR/SOC2), PII redaction, and secure model training pipelines.", color: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/20" },
+                { icon: Cpu, title: "Autonomous Agents", desc: "Deploy intelligent bots that handle customer support, sales, and internal ops 24/7.", color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
+                { icon: Shield, title: "AI Safety Guardrails", desc: "Proprietary risk management layers to prevent hallucinations and brand damage.", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+                { icon: Brain, title: "Predictive Analytics", desc: "Turn raw data into actionable forecasts using advanced ML models.", color: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/20" },
+                ].map((service, idx) => (
+                <div key={idx} className={`group p-8 rounded-3xl border ${service.border} ${service.bg} hover:bg-slate-900 transition-all duration-300 hover:scale-[1.02] flex flex-col`}>
+                    <div className={`w-14 h-14 rounded-2xl ${service.bg} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                        <service.icon className={`w-8 h-8 ${service.color}`} />
+                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-4">{service.title}</h3>
+                    <p className="text-slate-400 leading-relaxed mb-8 flex-grow">{service.desc}</p>
+                    <button 
+                        onClick={() => setSelectedService(service.title)}
+                        className="w-full py-3 border border-white/10 rounded-lg text-sm font-bold text-white hover:bg-white/5 transition-colors flex items-center justify-center gap-2 group-hover:border-white/30"
+                    >
+                        Learn More <ArrowRight size={14} />
+                    </button>
+                </div>
+                ))}
+            </div>
+
+            {/* Service Detail Modal */}
+            <ServiceModal 
+                service={selectedService} 
+                data={SERVICE_DETAILS[selectedService]} 
+                onClose={() => setSelectedService(null)} 
+                onBook={() => setActivePage('contact')}
+            />
+        </div>
+    );
+};
+
+const ProductsPage = ({ setActivePage }) => (
+    <div className="pt-32 pb-24 bg-[#050b14] relative overflow-hidden animate-fadeIn min-h-screen">
+         <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-purple-900/10 to-transparent pointer-events-none"></div>
+    
+         <div className="max-w-7xl mx-auto px-6">
+            <div className="mb-20 text-center">
+               <h4 className="text-cyan-400 font-mono mb-4">02 / PRODUCT LABS</h4>
+               <h2 className="text-5xl md:text-6xl font-bold text-white">Assets that Scale.</h2>
+            </div>
+    
+            {/* DailyBae Section */}
+            <div className="bg-slate-900/40 border border-pink-500/20 rounded-3xl p-8 md:p-16 mb-24 backdrop-blur-sm">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                    <div className="order-2 lg:order-1">
+                        <DailyBaeDemo />
+                    </div>
+                    <div className="order-1 lg:order-2">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-pink-500/30 bg-pink-500/10 text-pink-400 text-xs font-bold uppercase tracking-widest mb-6">
+                            B2C Viral Engine
+                        </div>
+                        <h3 className="text-4xl md:text-5xl font-bold text-white mb-6">Daily<span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500">Bae</span></h3>
+                        <p className="text-xl text-slate-300 mb-8 leading-relaxed">
+                            "Your Life, Reviewed." An AI journaling companion that roasts or praises you based on your daily entries. Built for viral sharing and high retention.
+                        </p>
+                        <ul className="space-y-4 mb-8">
+                            {['Custom Personalities (Savage/Supportive)', 'Meme-Ready Exports', 'Subscription Revenue Model'].map((item, i) => (
+                                <li key={i} className="flex items-center gap-3 text-slate-400">
+                                <CheckCircle size={20} className="text-pink-500" /> {item}
+                                </li>
+                            ))}
+                        </ul>
+                        <button onClick={() => setActivePage('contact')} className="px-8 py-3 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg transition-colors shadow-lg shadow-pink-900/20">
+                            Request Beta Access
+                        </button>
+                    </div>
+                </div>
+            </div>
+    
+            {/* Warzone Section */}
+            <div className="bg-slate-900/40 border border-orange-500/20 rounded-3xl p-8 md:p-16 backdrop-blur-sm">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                    <div>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-orange-500/30 bg-orange-500/10 text-orange-400 text-xs font-bold uppercase tracking-widest mb-6">
+                            B2B Sales Gamification
+                        </div>
+                        <h3 className="text-4xl md:text-5xl font-bold text-white mb-6">Outreach <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">Warzone</span></h3>
+                        <p className="text-xl text-slate-300 mb-8 leading-relaxed">
+                            Turn cold outreach into a PvP battle. A gamified platform where sales teams compete for XP, ranks, and revenue.
+                        </p>
+                        <div className="grid grid-cols-2 gap-4 mb-8">
+                            <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl">
+                                <Trophy className="text-orange-500 mb-2" />
+                                <h4 className="font-bold text-white">Leaderboards</h4>
+                                <p className="text-xs text-slate-500">Real-time ranking</p>
+                            </div>
+                            <div className="p-4 bg-slate-900 border border-slate-800 rounded-xl">
+                                <Crosshair className="text-red-500 mb-2" />
+                                <h4 className="font-bold text-white">PvP Duels</h4>
+                                <p className="text-xs text-slate-500">Head-to-head sprints</p>
+                            </div>
+                        </div>
+                        <button onClick={() => setActivePage('contact')} className="px-8 py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-lg transition-colors shadow-lg shadow-orange-900/20">
+                            Join The Warzone
+                        </button>
+                    </div>
+                    <div className="relative bg-[#0f1115] rounded-xl border border-slate-800 p-1 shadow-2xl overflow-hidden group">
+                        <div className="bg-slate-900 px-4 py-3 border-b border-slate-800 flex justify-between items-center">
+                            <div className="flex gap-1.5"><div className="w-3 h-3 rounded-full bg-red-500/50"></div><div className="w-3 h-3 rounded-full bg-yellow-500/50"></div><div className="w-3 h-3 rounded-full bg-green-500/50"></div></div>
+                            <div className="text-xs text-slate-500">warzone.app</div>
+                        </div>
+                        <div className="p-8 aspect-video bg-[#0A0F1C] relative flex items-center justify-center">
+                              <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
+                                <Target size={64} className="text-red-500 mb-4 animate-pulse" />
+                                <h3 className="text-2xl font-bold text-white uppercase tracking-widest">Mission Active</h3>
+                                <p className="text-orange-500 font-mono mt-2 text-xl">+2,450 XP Gained</p>
+                              </div>
+                              <div className="absolute inset-0 bg-[linear-gradient(rgba(249,115,22,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(249,115,22,0.1)_1px,transparent_1px)] bg-[size:40px_40px] opacity-20"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+         </div>
+    </div>
+);
+
+const VisionPage = () => (
+    <div className="pt-32 pb-24 px-6 max-w-7xl mx-auto animate-fadeIn min-h-screen">
+        <div className="grid md:grid-cols-2 gap-12 items-center mb-24">
+             <div>
+                 <h4 className="text-cyan-400 font-mono mb-4">03 / VISION</h4>
+                 <h2 className="text-5xl md:text-6xl font-bold text-white mb-6">The Trust Gap.</h2>
+                 <p className="text-xl text-slate-300 mb-8 leading-relaxed">
+                     Enterprises want high automation, but they fear low control. We bridge this gap by building systems that are autonomous yet governed.
+                 </p>
+                 <div className="p-6 bg-slate-900/50 border border-slate-700 rounded-xl mb-6">
+                     <p className="text-lg italic text-slate-400">"We don't trade time for money. We build assets that compound."</p>
+                 </div>
+                 <div className="flex gap-4">
+                     <div className="flex flex-col">
+                         <span className="text-4xl font-bold text-white">2026</span>
+                         <span className="text-sm text-slate-500">ESTABLISHED</span>
+                     </div>
+                     <div className="w-px bg-slate-700 h-12"></div>
+                     <div className="flex flex-col">
+                         <span className="text-4xl font-bold text-cyan-400">5+</span>
+                         <span className="text-sm text-slate-500">AI PRODUCTS</span>
+                     </div>
+                 </div>
+             </div>
+             <div className="relative rounded-2xl overflow-hidden border border-slate-700 shadow-2xl h-[500px]">
+                 <video autoPlay loop muted playsInline className="w-full h-full object-cover">
+                    <source src="AI_Powered_Cyberpunk_Animation_Generation.mp4" type="video/mp4" />
+                 </video>
+                 <div className="absolute inset-0 bg-gradient-to-t from-[#050b14] via-transparent to-transparent"></div>
+                 <div className="absolute bottom-8 left-8">
+                     <h3 className="text-2xl font-bold text-white mb-2">Convexly Bot V1</h3>
+                     <p className="text-cyan-400 text-sm">Autonomous Agent Prototype</p>
+                 </div>
+             </div>
+        </div>
+
+        {/* Roadmap */}
+        <div className="border-t border-slate-800 pt-16">
+            <h3 className="text-3xl font-bold text-white mb-12 text-center">Strategic Roadmap</h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                 {[
+                    { q: "Q1 2026", t: "Foundation", d: "Core AI infrastructure & Security audits." },
+                    { q: "Q2 2026", t: "Product Launch", d: "DailyBae beta & Warzone pilot." },
+                    { q: "Q3 2026", t: "Expansion", d: "Enterprise API release & Agency partnerships." },
+                    { q: "Q4 2026", t: "Autonomy", d: "Fully autonomous agent fleet deployment." },
+                 ].map((item,i) =>(
+                     <div key={i} className="bg-slate-900/30 p-6 rounded-xl border border-slate-800 relative group hover:bg-slate-900 transition-colors">
+                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-blue-600 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                         <div className="text-cyan-400 font-mono text-sm mb-2">{item.q}</div>
+                         <h4 className="text-xl font-bold text-white mb-2">{item.t}</h4>
+                         <p className="text-slate-400 text-sm">{item.d}</p>
+                     </div>
+                 ))}
+            </div>
+        </div>
+    </div>
+);
+
+const ContactPage = () => {
+    const [status, setStatus] = useState('idle');
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        setStatus('sending');
+        setTimeout(() => setStatus('success'), 2000);
+    };
+
+    return (
+        <div className="pt-32 pb-24 px-6 max-w-7xl mx-auto animate-fadeIn min-h-screen">
+            <div className="grid md:grid-cols-2 gap-16">
+                <div>
+                    <h4 className="text-cyan-400 font-mono mb-4">04 / CONTACT</h4>
+                    <h2 className="text-5xl font-bold text-white mb-6">Let's Build the Future.</h2>
+                    <p className="text-xl text-slate-300 mb-12">
+                        Ready to deploy AI that actually impacts your bottom line? Book a strategy call with our engineering team.
+                    </p>
+                    
+                    <div className="space-y-8 mb-12">
+                        <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 bg-cyan-900/20 rounded-full flex items-center justify-center text-cyan-400"><Mail /></div>
+                            <div>
+                                <h5 className="text-lg font-bold text-white">Email Us</h5>
+                                <p className="text-slate-400">founders@convexly.digital</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 bg-cyan-900/20 rounded-full flex items-center justify-center text-cyan-400"><MapPin /></div>
+                            <div>
+                                <h5 className="text-lg font-bold text-white">Headquarters</h5>
+                                <p className="text-slate-400">Cyber City, DLF Phase 2<br/>Gurugram, India</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* FAQ */}
+                    <div className="border-t border-slate-800 pt-8">
+                        <h4 className="font-bold text-white mb-4">Frequently Asked Questions</h4>
+                        <div className="space-y-4">
+                            <details className="group p-4 bg-slate-900/30 rounded-xl border border-slate-800 open:bg-slate-900/50 open:border-cyan-500/30">
+                                <summary className="flex justify-between items-center font-bold text-slate-300 cursor-pointer list-none">
+                                    How fast can you deploy? <ChevronDown className="group-open:rotate-180 transition-transform"/>
+                                </summary>
+                                <p className="text-slate-400 text-sm mt-3 leading-relaxed">We typically deploy MVP agents in 2-4 weeks. Full enterprise integration takes 8-12 weeks depending on complexity.</p>
+                            </details>
+                            <details className="group p-4 bg-slate-900/30 rounded-xl border border-slate-800 open:bg-slate-900/50 open:border-cyan-500/30">
+                                <summary className="flex justify-between items-center font-bold text-slate-300 cursor-pointer list-none">
+                                    Is my data secure? <ChevronDown className="group-open:rotate-180 transition-transform"/>
+                                </summary>
+                                <p className="text-slate-400 text-sm mt-3 leading-relaxed">Absolutely. We offer air-gapped deployments where data never leaves your infrastructure, compliant with SOC2 and GDPR.</p>
+                            </details>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Form */}
+                <div className="bg-slate-900/50 p-8 rounded-3xl border border-slate-700 shadow-2xl backdrop-blur-sm">
+                    {status === 'success' ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center py-20">
+                            <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center text-green-500 mb-6">
+                                <CheckCircle size={40} />
+                            </div>
+                            <h3 className="text-2xl font-bold text-white mb-2">Request Received</h3>
+                            <p className="text-slate-400">Our AI agents are analyzing your request. A human founder will contact you within 24 hours.</p>
+                            <button onClick={() => setStatus('idle')} className="mt-8 text-cyan-400 hover:text-white underline">Send another</button>
+                        </div>
+                    ) : (
+                        <>
+                            <h3 className="text-2xl font-bold text-white mb-6">Request Access</h3>
+                            <form className="space-y-6" onSubmit={handleSubmit}>
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">First Name</label>
+                                        <input className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-cyan-500 outline-none transition-colors" placeholder="Jane" required />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Last Name</label>
+                                        <input className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-cyan-500 outline-none transition-colors" placeholder="Doe" required />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Work Email</label>
+                                    <input type="email" className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-cyan-500 outline-none transition-colors" placeholder="jane@company.com" required />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Interest</label>
+                                    <select className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-cyan-500 outline-none transition-colors">
+                                        <option>General Inquiry</option>
+                                        <option>DailyBae Partnership</option>
+                                        <option>Warzone Enterprise</option>
+                                        <option>AI Consultancy</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Message</label>
+                                    <textarea className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-cyan-500 outline-none transition-colors h-32" placeholder="Tell us about your project..." required />
+                                </div>
+                                <button disabled={status === 'sending'} className="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold rounded-lg hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] transition-all flex justify-center items-center gap-2">
+                                    {status === 'sending' ? <Loader2 className="animate-spin" /> : 'Send Request'}
+                                </button>
+                            </form>
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const Footer = ({ setActivePage }) => {
+    const [email, setEmail] = useState('');
+    const [subbed, setSubbed] = useState(false);
+
+    const handleSub = (e) => {
+        e.preventDefault();
+        setSubbed(true);
+        setTimeout(() => setSubbed(false), 3000);
+    };
+
+    return (
+        <footer className="bg-[#02060c] border-t border-slate-800 pt-20 pb-10">
+            <div className="max-w-7xl mx-auto px-6">
+                <div className="flex flex-col lg:flex-row justify-between items-start mb-16 gap-12">
+                    <div className="max-w-sm">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center font-bold text-xs text-white">C</div>
+                            <span className="font-bold tracking-widest text-lg text-white">CONVEXLY</span>
+                        </div>
+                        <p className="text-slate-400 leading-relaxed mb-8">
+                            Building the infrastructure for the autonomous economy. Secure, scalable, and intelligent AI systems for modern enterprises.
+                        </p>
+                        
+                        {/* Newsletter Form */}
+                        <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                            <h5 className="text-white font-bold mb-2 text-sm flex items-center gap-2"><Sparkles size={14} className="text-yellow-400"/> Daily Intelligence</h5>
+                            <p className="text-slate-500 text-xs mb-3">Get daily AI trends and updates.</p>
+                            <form onSubmit={handleSub} className="flex gap-2">
+                                <input 
+                                    type="email" 
+                                    placeholder="Enter your email" 
+                                    className="bg-black/50 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white w-full focus:border-cyan-500 outline-none"
+                                    required
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                />
+                                <button className="bg-white text-black p-2 rounded-lg hover:bg-cyan-400 transition-colors">
+                                    {subbed ? <Check size={16}/> : <ArrowRight size={16}/>}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <div className="flex gap-16 flex-wrap">
+                        <div>
+                            <h4 className="font-bold text-white mb-4">Company</h4>
+                            <ul className="space-y-2 text-slate-400 text-sm">
+                                <li onClick={() => setActivePage('vision')} className="hover:text-cyan-400 cursor-pointer transition-colors">About Us</li>
+                                <li onClick={() => setActivePage('careers')} className="hover:text-cyan-400 cursor-pointer transition-colors">Careers <span className="text-[10px] bg-cyan-900 text-cyan-300 px-1.5 rounded ml-1">Hiring</span></li>
+                                <li onClick={() => setActivePage('blog')} className="hover:text-cyan-400 cursor-pointer transition-colors">Blog</li>
+                                <li onClick={() => setActivePage('contact')} className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center gap-2 mt-4 text-white"><LifeBuoy size={14}/> Support</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-white mb-4">Products</h4>
+                            <ul className="space-y-2 text-slate-400 text-sm">
+                                <li onClick={() => setActivePage('products')} className="hover:text-cyan-400 cursor-pointer transition-colors">DailyBae</li>
+                                <li onClick={() => setActivePage('products')} className="hover:text-cyan-400 cursor-pointer transition-colors">Warzone</li>
+                                <li onClick={() => setActivePage('services')} className="hover:text-cyan-400 cursor-pointer transition-colors">Consultancy</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-white mb-4">Legal</h4>
+                            <ul className="space-y-2 text-slate-400 text-sm">
+                                <li onClick={() => setActivePage('privacy')} className="hover:text-cyan-400 cursor-pointer transition-colors">Privacy Policy</li>
+                                <li onClick={() => setActivePage('terms')} className="hover:text-cyan-400 cursor-pointer transition-colors">Terms of Service</li>
+                                <li onClick={() => setActivePage('security')} className="hover:text-cyan-400 cursor-pointer transition-colors flex items-center gap-2"><Lock size={12}/> Security</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <p className="text-slate-600 text-sm">© 2026 Convexly Digital. All rights reserved.</p>
+                    <div className="flex gap-4">
+                        <div className="w-8 h-8 bg-slate-900 rounded-full flex items-center justify-center text-slate-400 hover:bg-cyan-500 hover:text-black transition-all cursor-pointer"><Share2 size={14}/></div>
+                        <div className="w-8 h-8 bg-slate-900 rounded-full flex items-center justify-center text-slate-400 hover:bg-cyan-500 hover:text-black transition-all cursor-pointer"><MessageCircle size={14}/></div>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    );
+};
+
+const App = () => {
+  const [activePage, setActivePage] = useState('home');
+  const [showChat, setShowChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState([{ role: 'system', text: "Hello. I am the AI Founder of Convexly. How can I help you scale today?" }]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+
+  // Chat Logic
+  const handleChatSend = async () => {
+      if (!chatInput.trim()) return;
+      const msg = chatInput;
+      setChatInput('');
+      setChatMessages(prev => [...prev, {role: 'user', text: msg}]);
+      setChatLoading(true);
+      const reply = await callGemini(msg, FOUNDER_PROMPT);
+      setChatMessages(prev => [...prev, {role: 'system', text: reply}]);
+      setChatLoading(false);
+  };
+
+  useEffect(() => {
+    window.scrollTo(0,0);
+  }, [activePage]);
+
+  return (
+    <div className="bg-[#050b14] min-h-screen text-white font-sans selection:bg-cyan-500/30">
+      <Navbar activePage={activePage} setActivePage={setActivePage} />
+      
+      <main className="min-h-screen">
+        {activePage === 'home' && <HomePage setActivePage={setActivePage} />}
+        {activePage === 'services' && <ServicesPage setActivePage={setActivePage} />}
+        {activePage === 'products' && <ProductsPage setActivePage={setActivePage} />}
+        {activePage === 'vision' && <VisionPage />}
+        {activePage === 'contact' && <ContactPage />}
+        
+        {/* New Pages */}
+        {activePage === 'careers' && <CareersPage />}
+        {activePage === 'blog' && <BlogPage />}
+        {activePage === 'privacy' && <LegalPage type="privacy" />}
+        {activePage === 'terms' && <LegalPage type="terms" />}
+        {activePage === 'security' && <LegalPage type="security" />}
+      </main>
+
+      <Footer setActivePage={setActivePage} />
+
+      {/* Global AI Chat */}
+      <div className="fixed bottom-8 right-8 z-40">
+        {showChat ? (
+           <div className="w-80 md:w-96 bg-[#0A0F1C] border border-cyan-500/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slideUp h-[500px]">
+              <div className="bg-gradient-to-r from-cyan-900 to-blue-900 p-4 border-b border-white/10 flex justify-between items-center">
+                 <div className="flex items-center gap-2">
+                    <Bot className="text-cyan-300" />
+                    <span className="font-bold text-white">AI Founder</span>
+                 </div>
+                 <button onClick={() => setShowChat(false)}><X size={18} className="text-slate-300 hover:text-white" /></button>
+              </div>
+              <div className="flex-1 p-4 bg-black/40 overflow-y-auto space-y-3">
+                 {chatMessages.map((m, i) => (
+                     <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                         <div className={`max-w-[85%] p-3 text-sm rounded-xl ${m.role === 'user' ? 'bg-cyan-600 text-white rounded-tr-none' : 'bg-slate-800 text-slate-300 rounded-tl-none border border-slate-700'}`}>
+                             {m.text}
+                         </div>
+                     </div>
+                 ))}
+                 {chatLoading && <div className="text-xs text-slate-500 ml-4">Thinking...</div>}
+              </div>
+              <div className="p-3 border-t border-slate-800 bg-slate-900">
+                 <div className="relative">
+                    <input 
+                        value={chatInput} 
+                        onChange={(e) => setChatInput(e.target.value)} 
+                        onKeyDown={e => e.key === 'Enter' && handleChatSend()}
+                        placeholder="Ask me anything..." 
+                        className="w-full bg-black/50 border border-slate-700 rounded-lg py-2 pl-3 pr-10 text-sm text-white focus:border-cyan-500 outline-none" 
+                    />
+                    <button onClick={handleChatSend} className="absolute right-2 top-2 text-cyan-500 hover:text-white"><Send size={16} /></button>
+                 </div>
+              </div>
+           </div>
+        ) : (
+           <button onClick={() => setShowChat(true)} className="w-14 h-14 bg-cyan-500 hover:bg-cyan-400 text-black rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(0,240,255,0.4)] transition-all transform hover:scale-110 animate-bounce-slow">
+              <MessageCircle size={28} />
+           </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default App;
